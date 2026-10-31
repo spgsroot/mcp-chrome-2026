@@ -1,5 +1,10 @@
 import { describe, expect, test } from '@jest/globals';
-import { StdioMessageDecoder, serializeStdioMessage } from './stdio-transport.js';
+import { PassThrough } from 'node:stream';
+import {
+  StdioMessageDecoder,
+  UnifiedStdioServerTransport,
+  serializeStdioMessage,
+} from './stdio-transport.js';
 
 describe('Unified STDIO framing', () => {
   const message = { jsonrpc: '2.0', id: 1, method: 'ping' } as any;
@@ -23,5 +28,20 @@ describe('Unified STDIO framing', () => {
     expect(() => decoder.append(Buffer.from('Content-Length: nope\r\n\r\n'))).toThrow(
       'Invalid Content-Length header',
     );
+  });
+});
+
+describe('Unified STDIO transport', () => {
+  test('closes when the client ends stdin', async () => {
+    const stdin = new PassThrough();
+    const transport = new UnifiedStdioServerTransport(stdin, new PassThrough());
+    const closed = Promise.withResolvers<void>();
+    transport.onclose = () => closed.resolve();
+    await transport.start();
+
+    stdin.end();
+    stdin.resume();
+
+    await closed.promise;
   });
 });

@@ -277,7 +277,10 @@ const handleToolCall = async (
 
 export async function runStdioServer(): Promise<void> {
   const transport = new UnifiedStdioServerTransport();
-  await getStdioMcpServer().connect(transport);
+  const server = getStdioMcpServer();
+  // Exit with the client: 'exit' handlers also stop the embedded HTTP server.
+  server.onclose = () => process.exit(0);
+  await server.connect(transport);
 }
 
 if (require.main === module) {

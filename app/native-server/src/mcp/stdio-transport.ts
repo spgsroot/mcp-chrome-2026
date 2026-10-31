@@ -92,6 +92,9 @@ export class UnifiedStdioServerTransport {
     }
   };
   private readonly onError = (error: Error) => this.onerror?.(error);
+  // The client closing our stdin is the only shutdown signal an MCP STDIO
+  // server gets; without it the process outlives its client.
+  private readonly onEnd = () => void this.close();
 
   onmessage?: (message: JSONRPCMessage) => void;
   onerror?: (error: Error) => void;
@@ -110,6 +113,7 @@ export class UnifiedStdioServerTransport {
     this.started = true;
     this.stdin.on('data', this.onData);
     this.stdin.on('error', this.onError);
+    this.stdin.on('end', this.onEnd);
   }
 
   async send(message: JSONRPCMessage): Promise<void> {
@@ -126,6 +130,7 @@ export class UnifiedStdioServerTransport {
     this.started = false;
     this.stdin.off('data', this.onData);
     this.stdin.off('error', this.onError);
+    this.stdin.off('end', this.onEnd);
     this.decoder.clear();
     this.onclose?.();
   }
