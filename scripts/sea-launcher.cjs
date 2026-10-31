@@ -438,7 +438,9 @@ if (standaloneLaunch) process.env.CHROME_MCP_STANDALONE = '1';
         process.env.MCP_SERVER_URL = `http://127.0.0.1:${port}/mcp`;
       }
       process.once('exit', stopEmbeddedHttpServer);
-      createRequire(stdioEntryPath)(stdioEntryPath);
+      // The entry only self-starts when it is require.main, which it is not
+      // when loaded from here.
+      await createRequire(stdioEntryPath)(stdioEntryPath).runStdioServer();
       return;
     }
     printStartupInfo(config, port);
